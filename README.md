@@ -2,7 +2,7 @@
 
 A local-first FastAPI application for an avatar-video workflow. Appearance avatars and cloned voice profiles are separate: create a voice profile in the Voices screen, then select it independently when starting a script job.
 
-**The cloned-voice path has generated a short CUDA WAV sample, and still-photo lip-sync, QC, and MP4 finishing worker code is now present. All configured MuseTalk model files are downloaded, and its key dependencies import in the configured CUDA environment. No lip-sync inference or final MP4 has been verified. The 6 GB GTX 1660 Super has been confirmed for CosyVoice CUDA inference; MuseTalk fit and output quality remain unknown. Do not treat a configured worker as proof that its model loads or fits in VRAM.
+**The cloned-voice path has generated a short CUDA WAV sample, and still-photo lip-sync, QC, and MP4 finishing worker code is now present. MuseTalk generated 433 frames, but FFmpeg rejected the portrait's odd width; the worker now scales dimensions to H.264-compatible even sizes. A retry hit a Windows native process crash, and generated frames showed a black lower-face artifact. There is no acceptable final MP4 yet. The 6 GB GTX 1660 Super has been confirmed for CosyVoice CUDA inference; MuseTalk stability and output quality remain unverified.
 
 ## Requirements
 
@@ -106,6 +106,6 @@ The orchestrator serializes configured worker invocations so two GPU-heavy stage
 - CosyVoice 2 voice-profile preparation and TTS have generated real WAV output with CUDA. MuseTalk, QC, and FFmpeg finishing worker code exists; all configured MuseTalk model files are present, and key MuseTalk dependencies import in the configured CUDA environment. Lip-sync quality and final MP4 finishing still need end-to-end review.
 - No model-specific VRAM presets or precision toggles are exposed yet. The GPU feasibility spike must establish safe settings first.
 - The browser is the UI for this local single-user app. It does not include authentication or LAN access controls.
-- MuseTalk CUDA fit, peak VRAM, speed, lip-sync quality, and output identity remain unverified. Review generated speech and video output before using them.
+- MuseTalk CUDA stability, peak VRAM, speed, lip-sync quality, and output identity remain unverified. Review generated speech and video output before using them.
 
 See [IMPLEMENTATION_CHECKLIST.md](./IMPLEMENTATION_CHECKLIST.md) for the verified progress and remaining gates.

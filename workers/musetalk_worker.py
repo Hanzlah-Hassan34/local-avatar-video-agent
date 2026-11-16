@@ -14,6 +14,7 @@ from pathlib import Path
 APP_ROOT = Path(__file__).resolve().parents[1]
 MUSE_ROOT = APP_ROOT / "data" / "vendor" / "MuseTalk"
 MODEL_ROOT = APP_ROOT / "data" / "models" / "MuseTalk"
+MUSE_PACKAGE_ROOT = APP_ROOT / "data" / "venvs" / "musetalk" / "Lib" / "site-packages"
 
 
 def read_spec() -> dict:
@@ -101,6 +102,7 @@ def _validate_model_files() -> dict[str, Path]:
 
 
 def run_lip_sync(spec: dict) -> None:
+    sys.path.insert(0, str(MUSE_PACKAGE_ROOT))
     import yaml
 
     reference_image = Path(spec["reference_image"]).resolve()
@@ -146,7 +148,14 @@ def run_lip_sync(spec: dict) -> None:
             and command
             and Path(str(command[0])).name.lower() in {"ffmpeg", "ffmpeg.exe"}
         ):
-            command = [str(ffmpeg_exe), *command[1:]]
+            command = list(command)
+            command[0] = str(ffmpeg_exe)
+            if "-vf" in command:
+                filter_index = command.index("-vf") + 1
+                if command[filter_index] == "format=yuv420p":
+                    command[filter_index] = (
+                        "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p"
+                    )
         return original_subprocess_run(command, *args, **kwargs)
 
     inference_module.subprocess.run = run_with_ffmpeg_path
