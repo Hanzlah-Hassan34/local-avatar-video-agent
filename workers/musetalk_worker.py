@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import subprocess
 import sys
 import types
 from pathlib import Path
@@ -134,8 +135,21 @@ def run_lip_sync(spec: dict) -> None:
     FaceParsing.model_init = model_init
 
     from omegaconf import OmegaConf
-    from scripts.inference import main
+    import scripts.inference as inference_module
     from argparse import Namespace
+
+    original_subprocess_run = subprocess.run
+
+    def run_with_ffmpeg_path(command, *args, **kwargs):
+        if (
+            isinstance(command, (list, tuple))
+            and command
+            and Path(str(command[0])).name.lower() in {"ffmpeg", "ffmpeg.exe"}
+        ):
+            command = [str(ffmpeg_exe), *command[1:]]
+        return original_subprocess_run(command, *args, **kwargs)
+
+    inference_module.subprocess.run = run_with_ffmpeg_path
 
     work_dir = Path(spec["work_dir"]).resolve()
     result_dir = work_dir / "musetalk" / f"segment-{int(spec['position']):04d}"
@@ -170,7 +184,7 @@ def run_lip_sync(spec: dict) -> None:
         audio_padding_length_left=2,
         audio_padding_length_right=2,
         batch_size=1,
-        output_vid_name=None,
+        output_vid_name=output_video.name,
         use_saved_coord=False,
         saved_coord=False,
         use_float16=True,
@@ -179,7 +193,10 @@ def run_lip_sync(spec: dict) -> None:
         right_cheek_width=90,
         version="v15",
     )
-    main(args)
+    try:
+        inference_module.main(args)
+    finally:
+        inference_module.subprocess.run = original_subprocess_run
 
     generated = result_dir / "v15" / output_video.name
     if not generated.is_file() or generated.stat().st_size == 0:
