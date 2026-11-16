@@ -1,0 +1,1070 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f5f1ea">
+    <title>Local Avatar Studio</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: "Segoe UI", sans-serif;
+        color: #2a2622;
+        background: #f5f1ea;
+        font-synthesis: none;
+      }
+      * { box-sizing: border-box; }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        background:
+          radial-gradient(ellipse at 12% 10%, rgba(194, 123, 92, .12), transparent 42%),
+          radial-gradient(ellipse at 90% 80%, rgba(94, 128, 104, .12), transparent 45%),
+          #f5f1ea;
+      }
+      header {
+        position: sticky;
+        z-index: 2;
+        top: 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 18px;
+        padding: 18px clamp(20px, 6vw, 88px);
+        border-bottom: 1px solid rgba(255, 255, 255, .75);
+        background: rgba(245, 241, 234, .88);
+        backdrop-filter: blur(16px);
+      }
+      .brand { font: 23px Georgia, serif; white-space: nowrap; }
+      nav { display: flex; flex-wrap: wrap; gap: 8px; }
+      nav button {
+        min-height: 38px;
+        margin: 0;
+        padding: 0 13px;
+        background: transparent;
+        color: #6f675f;
+        font-size: 14px;
+      }
+      nav button[aria-current="page"] { background: #e9e4da; color: #2a2622; }
+      main { max-width: 1120px; margin: 42px auto; padding: 0 24px; }
+      .panel {
+        border: 1px solid rgba(255, 255, 255, .8);
+        border-radius: 18px;
+        background: rgba(255, 255, 255, .58);
+        box-shadow: 0 16px 45px rgba(60, 45, 30, .08);
+        backdrop-filter: blur(18px);
+      }
+      .studio-layout { display: grid; grid-template-columns: minmax(220px, .7fr) minmax(320px, 1.5fr); gap: 24px; }
+      .avatar-panel, .studio, .content-panel { padding: clamp(22px, 4vw, 36px); }
+      .avatar-list, .job-list, .segment-list { display: grid; gap: 12px; }
+      .avatar-card, .job-card, .segment-card {
+        padding: 14px;
+        border: 1px solid #e5ded4;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, .65);
+      }
+      .avatar-card { display: grid; grid-template-columns: 58px 1fr; gap: 12px; align-items: center; cursor: pointer; }
+      .avatar-card.selected { outline: 2px solid #5e8068; }
+      .avatar-card img { width: 58px; height: 58px; border-radius: 11px; object-fit: cover; }
+      .avatar-empty {
+        display: grid; min-height: 150px; place-items: center;
+        border: 1px dashed #d6cec2; border-radius: 14px;
+        color: #6f675f; text-align: center; line-height: 1.6;
+      }
+      h1 { margin: 0 0 8px; font: 36px Georgia, serif; }
+      h2 { margin: 0 0 18px; font: 25px Georgia, serif; }
+      h3 { margin: 0 0 8px; font-size: 16px; }
+      p, .muted { color: #6f675f; line-height: 1.55; }
+      label { display: block; margin: 20px 0 8px; font-size: 14px; font-weight: 600; }
+      input:not([type="checkbox"]), textarea, select {
+        width: 100%;
+        min-height: 44px;
+        padding: 11px 12px;
+        border: 1px solid #e1d9cf;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, .82);
+        color: inherit;
+        font: inherit;
+      }
+      input[type="file"] { min-height: unset; padding: 10px; }
+      textarea { min-height: 190px; resize: vertical; }
+      .options { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      .field-hint { margin: 6px 0 0; font-size: 12px; }
+      button, .button {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        justify-content: center;
+        margin: 18px 8px 0 0;
+        padding: 0 18px;
+        border: 0;
+        border-radius: 12px;
+        background: #5e8068;
+        color: white;
+        font: inherit;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      button.secondary, .button.secondary { background: #ebe6de; color: #2a2622; }
+      button.clay { background: #c27b5c; }
+      button.danger { background: #b5473c; }
+      button:disabled { opacity: .55; cursor: not-allowed; }
+      .notice { min-height: 24px; margin: 12px 0; color: #6f675f; }
+      .notice.error { color: #b5473c; }
+      .notice.success { color: #45664f; }
+      .hidden { display: none !important; }
+      .row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+      .row > * { flex: 1; }
+      .progress-track { height: 8px; overflow: hidden; border-radius: 99px; background: #e8e1d7; }
+      .progress-track span { display: block; width: 4%; height: 100%; background: #5e8068; transition: width .3s; }
+      .stepper { display: flex; flex-wrap: wrap; gap: 9px; margin: 22px 0; }
+      .step { padding: 8px 12px; border-radius: 99px; background: #ebe6de; color: #6f675f; font-size: 13px; }
+      .step.active { background: #5e8068; color: white; }
+      .step.done { background: #dce7dd; color: #45664f; }
+      .recording { padding: 12px; border-radius: 12px; background: #f3e4df; color: #8f493e; }
+      .status-pill { display: inline-block; padding: 5px 9px; border-radius: 99px; background: #ebe6de; font-size: 12px; }
+      video { width: 100%; max-height: 62vh; border-radius: 14px; background: #1d1a17; }
+      audio { width: 100%; margin-top: 10px; }
+      .checkline { display: flex; align-items: flex-start; gap: 10px; margin-top: 18px; color: #514a43; line-height: 1.5; }
+      .checkline input { margin-top: 4px; accent-color: #5e8068; }
+      @media (max-width: 720px) {
+        header { align-items: flex-start; flex-direction: column; }
+        nav { width: 100%; }
+        nav button { flex: 1; }
+        main { margin-top: 24px; }
+        .studio-layout { grid-template-columns: 1fr; }
+        .options { grid-template-columns: 1fr; gap: 0; }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">Local Avatar Studio</div>
+      <nav aria-label="Main navigation">
+        <button data-page="studio" aria-current="page">Studio</button>
+        <button data-page="avatars">Avatars</button>
+        <button data-page="voices">Voices</button>
+        <button data-page="review">Voice review</button>
+        <button data-page="progress">Progress</button>
+        <button data-page="library">Library</button>
+        <button data-page="system">System</button>
+      </nav>
+    </header>
+    <main>
+      <section id="page-studio" class="page">
+        <div class="studio-layout">
+          <aside class="panel avatar-panel">
+            <h2>Your avatars</h2>
+            <p class="muted">Choose a visual avatar whose face you have permission to use. Narration voices are managed separately.</p>
+            <div id="avatar-list" class="avatar-list"></div>
+            <button class="secondary" data-go="avatars">+ Create avatar</button>
+          </aside>
+          <section class="panel studio">
+            <h1>Studio</h1>
+            <p class="muted">Create a voice draft, review every segment, then start video generation.</p>
+            <form id="job-form">
+              <label for="voice-profile">Cloned voice</label>
+              <div class="row">
+                <select id="voice-profile" required>
+                  <option value="" disabled selected>Create a voice clone first</option>
+                </select>
+                <button class="secondary" data-go="voices" type="button">Create voice</button>
+              </div>
+              <p class="field-hint">Voice profiles are separate from avatars. Choose a ready clone for this script.</p>
+              <label for="script">Finished script</label>
+              <textarea id="script" name="script" maxlength="20000" placeholder="Paste your script…" required></textarea>
+              <div class="options">
+                <div>
+                  <label for="language">Language</label>
+                  <select id="language" name="language">
+                    <option value="en">English</option>
+                  </select>
+                </div>
+                <div>
+                  <label for="style">Voice style</label>
+                  <select id="style" name="style">
+                    <option value="natural">Natural</option>
+                    <option value="calm">Calm</option>
+                    <option value="energetic">Energetic</option>
+                  </select>
+                </div>
+              </div>
+              <button id="create-job" type="submit">Generate voice draft</button>
+              <div id="studio-status" class="notice" role="status" aria-live="polite"></div>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section id="page-avatars" class="page hidden">
+        <div class="panel content-panel">
+          <h1>Create an avatar</h1>
+          <p class="muted">Use only a face image you have permission to use. Create narration voices separately in the Voices screen. Your uploads stay in the configured local data folder.</p>
+          <form id="avatar-form">
+            <div class="options">
+              <div><label for="avatar-name">Avatar name</label><input id="avatar-name" name="name" maxlength="80" required></div>
+              <div><label for="reference-image">Reference photo</label><input id="reference-image" name="reference_image" type="file" accept="image/png,image/jpeg,image/webp" required></div>
+            </div>
+            <label for="consent-text">Face consent statement</label>
+            <textarea id="consent-text" name="consent_text" minlength="20" maxlength="2000" required>I confirm that I am the person shown, or have their explicit permission to use this image to generate an AI avatar video.</textarea>
+            <div class="row">
+              <button id="record-face-consent" class="secondary" type="button">Record face consent</button>
+              <button id="stop-face-consent" class="clay hidden" type="button">Stop recording</button>
+              <span id="face-recording-state" class="muted">Record consent or select an existing recording.</span>
+            </div>
+            <label for="consent-file">Or select an existing consent recording</label>
+            <input id="consent-file" type="file" accept="audio/webm,audio/wav,audio/mpeg,audio/ogg,.ogg">
+            <label class="checkline"><input id="consent-confirmed" type="checkbox" required><span>I confirm permission to use this face image for AI-generated video.</span></label>
+            <button type="submit">Save avatar locally</button>
+            <div id="avatar-status" class="notice" role="status" aria-live="polite"></div>
+          </form>
+          <h2>Replace an avatar photo</h2>
+          <p class="muted">Keep the avatar and its consent record, and update only its reference photo.</p>
+          <form id="avatar-photo-form">
+            <label for="reference-avatar">Avatar</label>
+            <select id="reference-avatar" required></select>
+            <label for="replacement-reference-photo">New reference photo</label>
+            <input id="replacement-reference-photo" type="file" accept="image/png,image/jpeg,image/webp" required>
+            <button type="submit">Save new photo</button>
+            <div id="avatar-photo-status" class="notice" role="status" aria-live="polite"></div>
+          </form>
+        </div>
+      </section>
+
+      <section id="page-voices" class="page hidden">
+        <div class="panel content-panel">
+          <h1>Voice library</h1>
+          <p class="muted">Create a voice profile separately from an avatar. A configured local voice-cloning worker is required to finish cloning.</p>
+          <form id="voice-form">
+            <div class="options">
+              <div><label for="voice-name">Voice profile name</label><input id="voice-name" name="name" maxlength="80" required></div>
+              <div><label for="voice-sample">Voice sample</label><input id="voice-sample" name="voice_sample" type="file" accept="audio/wav,audio/mpeg,audio/mp4,audio/webm,audio/ogg,.ogg" required><p class="field-hint">Choose a clear recording with speech.</p></div>
+            </div>
+            <button id="create-voice" type="submit" disabled>Create voice clone</button>
+            <div id="voice-status" class="notice" role="status" aria-live="polite"></div>
+          </form>
+          <h2>Saved voice profiles</h2>
+          <div id="voice-list" class="job-list"></div>
+        </div>
+      </section>
+
+      <section id="page-review" class="page hidden">
+        <div class="panel content-panel">
+          <h1>Voice review</h1>
+          <p id="review-summary" class="muted">Generate a voice draft to review its audio segments.</p>
+          <div id="segment-list" class="segment-list"></div>
+          <button id="approve-voice" disabled>Approve voice and create video</button>
+          <button id="cancel-review" class="secondary">Cancel this job</button>
+          <div id="review-status" class="notice" role="status" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section id="page-progress" class="page hidden">
+        <div class="panel content-panel">
+          <h1>Generation progress</h1>
+          <p id="progress-detail" class="muted">No active job.</p>
+          <div id="stepper" class="stepper"></div>
+          <div class="progress-track"><span id="progress-bar"></span></div>
+          <div id="progress-status" class="notice" role="status" aria-live="polite"></div>
+          <button id="cancel-job" class="danger hidden">Cancel job</button>
+          <button id="retry-job" class="secondary hidden">Retry job</button>
+          <button id="open-result" class="hidden">View result</button>
+        </div>
+      </section>
+
+      <section id="page-quality-review" class="page hidden">
+        <div class="panel content-panel">
+          <h1>Avatar quality review</h1>
+          <p id="quality-review-summary" class="muted">Review the generated avatar segments and quality flags before finishing.</p>
+          <ul id="quality-review-flags"></ul>
+          <div id="quality-review-segments" class="segment-list"></div>
+          <button id="accept-quality-review">Accept review and finish video</button>
+          <button id="cancel-quality-review" class="secondary">Cancel this job</button>
+          <div id="quality-review-status" class="notice" role="status" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section id="page-result" class="page hidden">
+        <div class="panel content-panel">
+          <h1>Your video</h1>
+          <p id="result-summary" class="muted"></p>
+          <video id="result-video" controls playsinline></video>
+          <a id="download-video" class="button" download>Download video</a>
+          <a id="download-provenance" class="button secondary" download="provenance.json">Download provenance</a>
+          <h2>Quality checks</h2>
+          <p id="quality-summary" class="muted">Quality details are recorded in the provenance sidecar.</p>
+          <ul id="quality-flags"></ul>
+          <h2>Segments</h2>
+          <div id="result-segments" class="segment-list"></div>
+          <button data-go="studio">Create another</button>
+        </div>
+      </section>
+
+      <section id="page-library" class="page hidden">
+        <div class="panel content-panel">
+          <h1>Library</h1>
+          <label for="library-search">Search past jobs</label>
+          <input id="library-search" type="search" placeholder="Search scripts, avatars, or status">
+          <div id="job-list" class="job-list"></div>
+          <div id="library-status" class="notice" role="status" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section id="page-system" class="page hidden">
+        <div class="panel content-panel">
+          <h1>System</h1>
+          <p class="muted">Local runtime and worker configuration. No model weights are downloaded by the app.</p>
+          <div id="system-status" class="job-card">Checking local system…</div>
+          <button id="refresh-system" class="secondary">Refresh status</button>
+        </div>
+      </section>
+    </main>
+    <script>
+      const state = { avatars: [], voices: [], voicePollers: new Set(), selectedAvatarId: null, activeJobId: null, eventSource: null, faceConsentBlob: null, recorder: null, stream: null, consentTarget: null, jobs: [] };
+      const labels = {
+        queued_voice: "Queued for voice",
+        voice_generation: "Generating voice",
+        voice_review: "Voice review",
+        queued_video: "Queued for video",
+        lip_sync: "Lip syncing portrait",
+        checking: "Checking output",
+        video_review: "Avatar quality review",
+        queued_finish: "Queued for finishing",
+        finishing: "Finishing video",
+        completed: "Completed",
+        failed: "Failed",
+        cancelled: "Cancelled",
+        draft: "Draft",
+      };
+      const steps = ["voice_generation", "lip_sync", "checking", "video_review", "finishing", "completed"];
+
+      async function api(url, options = {}) {
+        const response = await fetch(url, options);
+        const data = response.status === 204 ? null : await response.json();
+        if (!response.ok) {
+          const detail = data?.detail;
+          throw new Error(typeof detail === "string" ? detail : JSON.stringify(detail || response.statusText));
+        }
+        return data;
+      }
+
+      function setNotice(element, message, kind = "") {
+        element.textContent = message;
+        element.className = `notice ${kind}`.trim();
+      }
+
+      function showPage(name) {
+        document.querySelectorAll(".page").forEach((page) => page.classList.toggle("hidden", page.id !== `page-${name}`));
+        document.querySelectorAll("nav [data-page]").forEach((button) => {
+          if (button.dataset.page === name) button.setAttribute("aria-current", "page");
+          else button.removeAttribute("aria-current");
+        });
+        if (name === "library") loadJobs();
+        if (name === "system") loadSystem();
+        if (name === "voices") loadVoices();
+        if (name === "review") loadReview();
+        if (name === "quality-review") loadQualityReview();
+        if (name === "progress") loadProgress();
+      }
+
+      document.querySelectorAll("[data-page]").forEach((button) => button.addEventListener("click", () => showPage(button.dataset.page)));
+      document.querySelectorAll("[data-go]").forEach((button) => button.addEventListener("click", () => showPage(button.dataset.go)));
+
+      function renderAvatars() {
+        const list = document.querySelector("#avatar-list");
+        list.replaceChildren();
+        const referenceAvatar = document.querySelector("#reference-avatar");
+        const selectedReferenceAvatar = referenceAvatar.value || state.selectedAvatarId;
+        referenceAvatar.replaceChildren();
+        for (const avatar of state.avatars) {
+          const option = document.createElement("option");
+          option.value = avatar.id;
+          option.textContent = avatar.name;
+          option.selected = avatar.id === selectedReferenceAvatar;
+          referenceAvatar.append(option);
+        }
+        referenceAvatar.disabled = !state.avatars.length;
+        document.querySelector("#avatar-photo-form button[type=submit]").disabled = !state.avatars.length;
+        if (!state.avatars.length) {
+          const empty = document.createElement("div");
+          empty.className = "avatar-empty";
+          empty.textContent = "No avatars yet. Create a visual avatar with an authorized reference photo.";
+          list.append(empty);
+          return;
+        }
+        for (const avatar of state.avatars) {
+          const card = document.createElement("div");
+          card.className = `avatar-card${state.selectedAvatarId === avatar.id ? " selected" : ""}`;
+          card.tabIndex = 0;
+          card.setAttribute("role", "button");
+          card.setAttribute("aria-label", `Select ${avatar.name}`);
+          const image = document.createElement("img");
+          image.src = avatar.image_url;
+          image.alt = "";
+          const details = document.createElement("div");
+          const title = document.createElement("strong");
+          title.textContent = avatar.name;
+          const info = document.createElement("div");
+          info.className = "muted";
+          info.textContent = "Photo avatar · mouth-only lip sync";
+          details.append(title, info);
+          card.append(image, details);
+          const select = () => {
+            state.selectedAvatarId = avatar.id;
+            renderAvatars();
+          };
+          card.addEventListener("click", select);
+          card.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") select(); });
+          list.append(card);
+        }
+      }
+
+      async function loadAvatars() {
+        state.avatars = await api("/api/avatars");
+        if (!state.avatars.some((avatar) => avatar.id === state.selectedAvatarId)) state.selectedAvatarId = state.avatars[0]?.id || null;
+        renderAvatars();
+      }
+
+      document.querySelector("#avatar-photo-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const status = document.querySelector("#avatar-photo-status");
+        const avatarId = document.querySelector("#reference-avatar").value;
+        const photo = document.querySelector("#replacement-reference-photo").files[0];
+        if (!avatarId || !photo) {
+          setNotice(status, "Choose an avatar and its new reference photo first.", "error");
+          return;
+        }
+        const data = new FormData();
+        data.append("reference_image", photo);
+        const submit = form.querySelector("button[type=submit]");
+        submit.disabled = true;
+        setNotice(status, "Saving the new avatar photo locally…");
+        try {
+          await api(`/api/avatars/${avatarId}/image`, { method: "POST", body: data });
+          form.reset();
+          await loadAvatars();
+          setNotice(status, "Avatar photo replaced. The existing face consent remains saved.", "success");
+        } catch (error) {
+          setNotice(status, error.message, "error");
+        } finally {
+          submit.disabled = !state.avatars.length;
+        }
+      });
+
+      function startConsentRecording(target) {
+        const config = target === "face"
+          ? { start: "#record-face-consent", stop: "#stop-face-consent", input: "#consent-file", message: "#face-recording-state", notice: "#avatar-status", state: "faceConsentBlob" }
+          : null;
+        if (!config) return;
+        if (state.recorder?.state === "recording") {
+          setNotice(document.querySelector(config.notice), "Another consent recording is already active.", "error");
+          return;
+        }
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+          state.stream = stream;
+          state.consentTarget = config;
+          const mimeType = MediaRecorder.isTypeSupported("audio/webm") ? "audio/webm" : "";
+          state.recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+          const chunks = [];
+          state.recorder.addEventListener("dataavailable", (event) => { if (event.data.size) chunks.push(event.data); });
+          state.recorder.addEventListener("stop", () => {
+            const type = state.recorder.mimeType || "audio/webm";
+            state[config.state] = new File([new Blob(chunks, { type })], "consent.webm", { type });
+            document.querySelector(config.input).value = "";
+            document.querySelector(config.message).textContent = "Consent recording captured and ready to save.";
+            state.stream?.getTracks().forEach((track) => track.stop());
+          }, { once: true });
+          state.recorder.start();
+          document.querySelector(config.start).classList.add("hidden");
+          document.querySelector(config.stop).classList.remove("hidden");
+          document.querySelector(config.message).textContent = "Recording… speak your consent, then stop.";
+        }).catch((error) => {
+          setNotice(document.querySelector(config.notice), `Microphone unavailable: ${error.message}`, "error");
+        });
+      }
+
+      function stopConsentRecording() {
+        if (state.recorder?.state === "recording") state.recorder.stop();
+        if (!state.consentTarget) return;
+        document.querySelector(state.consentTarget.start).classList.remove("hidden");
+        document.querySelector(state.consentTarget.stop).classList.add("hidden");
+      }
+
+      document.querySelector("#avatar-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const status = document.querySelector("#avatar-status");
+        const consent = state.faceConsentBlob || document.querySelector("#consent-file").files[0];
+        if (!consent) {
+          setNotice(status, "Record or select a consent audio recording first.", "error");
+          return;
+        }
+        const data = new FormData();
+        data.append("name", form.elements.namedItem("name").value.trim());
+        data.append("consent_text", form.elements.namedItem("consent_text").value.trim());
+        data.append("consent_confirmed", String(document.querySelector("#consent-confirmed").checked));
+        data.append("reference_image", form.elements.namedItem("reference_image").files[0]);
+        data.append("consent_recording", consent, consent.name || "consent.webm");
+        const submit = form.querySelector("button[type=submit]");
+        submit.disabled = true;
+        setNotice(status, "Saving avatar photo and face consent locally…");
+        try {
+          const avatar = await api("/api/avatars", { method: "POST", body: data });
+          state.selectedAvatarId = avatar.id;
+          state.faceConsentBlob = null;
+          form.reset();
+          document.querySelector("#consent-text").value = "I confirm that I am the person shown, or have their explicit permission to use this image to generate an AI avatar video.";
+          document.querySelector("#face-recording-state").textContent = "Record consent or select an existing recording.";
+          await loadAvatars();
+          setNotice(status, "Avatar photo and face consent saved on this device.", "success");
+        } catch (error) {
+          setNotice(status, error.message, "error");
+        } finally {
+          submit.disabled = false;
+        }
+      });
+
+      document.querySelector("#record-face-consent").addEventListener("click", () => startConsentRecording("face"));
+      document.querySelector("#stop-face-consent").addEventListener("click", stopConsentRecording);
+
+      document.querySelector("#consent-file").addEventListener("change", () => {
+        if (document.querySelector("#consent-file").files[0]) state.faceConsentBlob = null;
+      });
+      async function loadVoices() {
+        state.voices = await api("/api/voices");
+        const createButton = document.querySelector("#create-voice");
+        const voiceStatus = document.querySelector("#voice-status");
+        try {
+          const system = await api("/api/system");
+          const configured = system.configured_workers.includes("voice_clone");
+          createButton.disabled = !configured;
+          if (!configured) {
+            setNotice(
+              voiceStatus,
+              `Voice cloning is unavailable: no local worker is configured. Add a voice_clone worker to ${system.worker_config_path}.`,
+              "error",
+            );
+          }
+        } catch (error) {
+          createButton.disabled = true;
+          setNotice(voiceStatus, `Could not check voice-cloning setup: ${error.message}`, "error");
+        }
+        const select = document.querySelector("#voice-profile");
+        const selected = select.value;
+        select.replaceChildren();
+        const ready = state.voices.filter((voice) => voice.status === "ready");
+        if (!ready.length) {
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent = "Create a voice clone first";
+          select.append(option);
+        } else {
+          for (const voice of ready) {
+            const option = document.createElement("option");
+            option.value = voice.id;
+            option.textContent = voice.name;
+            option.selected = voice.id === selected;
+            select.append(option);
+          }
+        }
+        renderVoiceProfiles();
+      }
+
+      async function monitorVoiceClone(voiceId) {
+        if (state.voicePollers.has(voiceId)) return;
+        state.voicePollers.add(voiceId);
+        const startedAt = Date.now();
+        try {
+          while (Date.now() - startedAt < 30 * 60 * 1000) {
+            const profiles = await api("/api/voices");
+            state.voices = profiles;
+            renderVoiceProfiles();
+            const profile = profiles.find((item) => item.id === voiceId);
+            if (!profile || !["queued", "cloning"].includes(profile.status)) {
+              await loadVoices();
+              const status = document.querySelector("#voice-status");
+              if (profile?.status === "ready") {
+                setNotice(status, `Voice clone "${profile.name}" is ready. Select it in Studio.`, "success");
+              } else if (profile) {
+                setNotice(status, profile.error || "Voice cloning failed.", "error");
+              }
+              return;
+            }
+            setNotice(document.querySelector("#voice-status"), `Cloning "${profile.name}" locally…`);
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+          }
+          setNotice(document.querySelector("#voice-status"), "Clone is still running. Its status remains available in the voice library.");
+        } catch (error) {
+          setNotice(document.querySelector("#voice-status"), error.message, "error");
+        } finally {
+          state.voicePollers.delete(voiceId);
+        }
+      }
+
+      function renderVoiceProfiles() {
+        const list = document.querySelector("#voice-list");
+        list.replaceChildren();
+        if (!state.voices.length) {
+          const empty = document.createElement("p");
+          empty.className = "muted";
+          empty.textContent = "No voice profiles yet. Create one above.";
+          list.append(empty);
+          return;
+        }
+        for (const voice of state.voices) {
+          const card = document.createElement("article");
+          card.className = "job-card";
+          const title = document.createElement("h3");
+          title.textContent = voice.name;
+          const status = document.createElement("p");
+          status.textContent = `Status: ${voice.status}`;
+          card.append(title, status);
+          if (voice.error) {
+            const error = document.createElement("p");
+            error.className = "notice error";
+            error.textContent = voice.error;
+            card.append(error);
+          }
+          if (voice.status === "failed") {
+            const retry = document.createElement("button");
+            retry.className = "secondary";
+            retry.textContent = "Retry clone";
+            retry.addEventListener("click", async () => {
+              try {
+                const queued = await api(`/api/voices/${voice.id}/retry`, { method: "POST" });
+                await loadVoices();
+                monitorVoiceClone(queued.id);
+              } catch (error) {
+                setNotice(document.querySelector("#voice-status"), error.message, "error");
+              }
+            });
+            card.append(retry);
+          }
+          list.append(card);
+        }
+      }
+
+      document.querySelector("#voice-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const status = document.querySelector("#voice-status");
+        const data = new FormData();
+        data.append("name", form.elements.namedItem("name").value.trim());
+        data.append("voice_sample", form.elements.namedItem("voice_sample").files[0]);
+        const submit = form.querySelector("button[type=submit]");
+        submit.disabled = true;
+        setNotice(status, "Creating the voice clone…");
+        try {
+          const profile = await api("/api/voices", { method: "POST", body: data });
+          form.reset();
+          await loadVoices();
+          if (["queued", "cloning"].includes(profile.status)) {
+            setNotice(status, "Voice profile queued for the local cloning worker.");
+            monitorVoiceClone(profile.id);
+          } else {
+            setNotice(status, profile.status === "ready"
+              ? "Voice clone created and ready to select in Studio."
+              : `Voice profile ${profile.status}: ${profile.error || "check local worker setup."}`,
+            profile.status === "ready" ? "success" : "error");
+          }
+        } catch (error) {
+          setNotice(status, error.message, "error");
+          await loadVoices();
+        } finally {
+          submit.disabled = false;
+        }
+      });
+
+      document.querySelector("#job-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const status = document.querySelector("#studio-status");
+        if (!state.selectedAvatarId) {
+          setNotice(status, "Create and select an avatar first.", "error");
+          return;
+        }
+        const button = document.querySelector("#create-job");
+        button.disabled = true;
+        setNotice(status, "Creating job…");
+        try {
+          const job = await api("/api/jobs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              script: form.elements.namedItem("script").value,
+              language: form.elements.namedItem("language").value,
+              style: form.elements.namedItem("style").value,
+              avatar_id: state.selectedAvatarId,
+              voice_id: document.querySelector("#voice-profile").value,
+            }),
+          });
+          state.activeJobId = job.id;
+          const queued = await api(`/api/jobs/${job.id}/generate-voice`, { method: "POST" });
+          setNotice(status, `Voice generation started (${labels[queued.status]}).`);
+          listenToJob(job.id);
+          showPage("progress");
+          await loadProgress();
+        } catch (error) {
+          setNotice(status, error.message, "error");
+        } finally {
+          button.disabled = false;
+        }
+      });
+
+      async function loadReview() {
+        if (!state.activeJobId) return;
+        try {
+          const job = await api(`/api/jobs/${state.activeJobId}`);
+          document.querySelector("#review-summary").textContent = `${job.avatar_name || "Avatar"} · ${job.voice_name || "Voice"} · ${job.segments.length} segment${job.segments.length === 1 ? "" : "s"} · ${labels[job.status] || job.status}`;
+          const list = document.querySelector("#segment-list");
+          list.replaceChildren();
+          for (const segment of job.segments) {
+            const card = document.createElement("article");
+            card.className = "segment-card";
+            const heading = document.createElement("h3");
+            heading.textContent = `Segment ${segment.position + 1}`;
+            const text = document.createElement("p");
+            text.textContent = segment.text;
+            const stateLabel = document.createElement("span");
+            stateLabel.className = "status-pill";
+            stateLabel.textContent = segment.approved ? "Approved" : labels[segment.status] || segment.status;
+            card.append(heading, text, stateLabel);
+            if (segment.audio_url) {
+              const audio = document.createElement("audio");
+              audio.controls = true;
+              audio.src = segment.audio_url;
+              card.append(audio);
+            }
+            if (job.status === "voice_review" && segment.status === "ready_for_review") {
+              const approve = document.createElement("button");
+              approve.textContent = "Approve segment";
+              approve.addEventListener("click", async () => {
+                try { await api(`/api/jobs/${job.id}/segments/${segment.id}/approve`, { method: "POST" }); await loadReview(); }
+                catch (error) { setNotice(document.querySelector("#review-status"), error.message, "error"); }
+              });
+              const regenerate = document.createElement("button");
+              regenerate.className = "secondary";
+              regenerate.textContent = "Regenerate";
+              regenerate.addEventListener("click", async () => {
+                try {
+                  await api(`/api/jobs/${job.id}/segments/${segment.id}/regenerate`, { method: "POST" });
+                  listenToJob(job.id);
+                  showPage("progress");
+                  await loadProgress();
+                } catch (error) { setNotice(document.querySelector("#review-status"), error.message, "error"); }
+              });
+              card.append(approve, regenerate);
+            }
+            list.append(card);
+          }
+          const allApproved = job.segments.length > 0 && job.segments.every((segment) => segment.approved);
+          const button = document.querySelector("#approve-voice");
+          button.disabled = !allApproved || job.status !== "voice_review";
+          button.textContent = allApproved ? "Approve voice and create video" : "Approve every segment to continue";
+          document.querySelector("#cancel-review").classList.toggle("hidden", !job.can_cancel);
+          if (job.error) setNotice(document.querySelector("#review-status"), job.error, "error");
+        } catch (error) {
+          setNotice(document.querySelector("#review-status"), error.message, "error");
+        }
+      }
+
+      document.querySelector("#approve-voice").addEventListener("click", async () => {
+        if (!state.activeJobId) return;
+        const status = document.querySelector("#review-status");
+        try {
+          await api(`/api/jobs/${state.activeJobId}/approve-voice`, { method: "POST" });
+          listenToJob(state.activeJobId);
+          showPage("progress");
+          await loadProgress();
+        } catch (error) {
+          setNotice(status, error.message, "error");
+        }
+      });
+
+      async function loadProgress() {
+        if (!state.activeJobId) return;
+        try {
+          const job = await api(`/api/jobs/${state.activeJobId}`);
+          document.querySelector("#progress-detail").textContent = `${job.avatar_name || "Avatar"} · ${job.segments.length} segment${job.segments.length === 1 ? "" : "s"}`;
+          document.querySelector("#progress-status").textContent = job.error || labels[job.status] || job.status;
+          const activeIndex = steps.indexOf(job.status);
+          document.querySelector("#stepper").replaceChildren(...steps.map((step, index) => {
+            const item = document.createElement("span");
+            item.className = `step${index < activeIndex ? " done" : index === activeIndex ? " active" : ""}`;
+            item.textContent = labels[step];
+            return item;
+          }));
+          const progress = job.status === "completed" ? 100 : activeIndex < 0 ? 5 : Math.round((activeIndex / (steps.length - 1)) * 95);
+          document.querySelector("#progress-bar").style.width = `${progress}%`;
+          document.querySelector("#cancel-job").classList.toggle("hidden", !job.can_cancel);
+          document.querySelector("#retry-job").classList.toggle("hidden", job.status !== "failed");
+          document.querySelector("#open-result").classList.toggle("hidden", job.status !== "completed");
+          if (job.status === "voice_review") showPage("review");
+          if (job.status === "video_review") showPage("quality-review");
+          if (job.status === "completed") showPage("result");
+          if (job.status === "failed" || job.status === "cancelled") setNotice(document.querySelector("#progress-status"), job.error || labels[job.status], "error");
+        } catch (error) {
+          setNotice(document.querySelector("#progress-status"), error.message, "error");
+        }
+      }
+
+      async function loadQualityReview() {
+        if (!state.activeJobId) return;
+        const status = document.querySelector("#quality-review-status");
+        try {
+          const job = await api(`/api/jobs/${state.activeJobId}`);
+          document.querySelector("#quality-review-summary").textContent =
+            `${job.avatar_name || "Avatar"} · ${job.segments.length} segment${job.segments.length === 1 ? "" : "s"} · ${labels[job.status] || job.status}`;
+          const flags = document.querySelector("#quality-review-flags");
+          flags.replaceChildren();
+          for (const flag of job.quality_flags) {
+            const item = document.createElement("li");
+            item.textContent = flag;
+            flags.append(item);
+          }
+          if (!job.quality_flags.length) {
+            const item = document.createElement("li");
+            item.textContent = "The quality worker requested review but supplied no specific flags.";
+            flags.append(item);
+          }
+          const segments = document.querySelector("#quality-review-segments");
+          segments.replaceChildren();
+          for (const segment of job.segments) {
+            const card = document.createElement("article");
+            card.className = "segment-card";
+            const heading = document.createElement("h3");
+            heading.textContent = `Segment ${segment.position + 1}`;
+            const text = document.createElement("p");
+            text.textContent = segment.text;
+            card.append(heading, text);
+            if (segment.video_url) {
+              const video = document.createElement("video");
+              video.controls = true;
+              video.playsInline = true;
+              video.src = segment.video_url;
+              card.append(video);
+            }
+            segments.append(card);
+          }
+          const waiting = job.status === "video_review";
+          document.querySelector("#accept-quality-review").disabled = !waiting;
+          document.querySelector("#cancel-quality-review").disabled = !job.can_cancel;
+          if (!waiting) {
+            setNotice(status, job.error || `This job is ${labels[job.status] || job.status}.`);
+          }
+        } catch (error) {
+          setNotice(status, error.message, "error");
+        }
+      }
+
+      document.querySelector("#accept-quality-review").addEventListener("click", async () => {
+        if (!state.activeJobId) return;
+        const status = document.querySelector("#quality-review-status");
+        try {
+          await api(`/api/jobs/${state.activeJobId}/approve-video-review`, { method: "POST" });
+          listenToJob(state.activeJobId);
+          showPage("progress");
+          await loadProgress();
+        } catch (error) {
+          setNotice(status, error.message, "error");
+        }
+      });
+
+      document.querySelector("#cancel-quality-review").addEventListener("click", async () => {
+        if (!state.activeJobId) return;
+        const status = document.querySelector("#quality-review-status");
+        try {
+          await api(`/api/jobs/${state.activeJobId}/cancel`, { method: "POST" });
+          await loadQualityReview();
+        } catch (error) {
+          setNotice(status, error.message, "error");
+        }
+      });
+
+      function listenToJob(jobId) {
+        state.eventSource?.close();
+        state.eventSource = new EventSource(`/api/jobs/${jobId}/events`);
+        state.eventSource.onmessage = async (event) => {
+          const data = JSON.parse(event.data);
+          document.querySelector("#progress-status").textContent = data.detail;
+          await loadProgress();
+          const job = await api(`/api/jobs/${jobId}`);
+          if (["voice_review", "video_review", "completed", "failed", "cancelled"].includes(job.status)) state.eventSource.close();
+        };
+        state.eventSource.onerror = () => {
+          state.eventSource?.close();
+          loadProgress();
+        };
+      }
+
+      document.querySelector("#cancel-job").addEventListener("click", async () => {
+        try {
+          await api(`/api/jobs/${state.activeJobId}/cancel`, { method: "POST" });
+          await loadProgress();
+        } catch (error) { setNotice(document.querySelector("#progress-status"), error.message, "error"); }
+      });
+      document.querySelector("#retry-job").addEventListener("click", async () => {
+        if (!state.activeJobId) return;
+        try {
+          await api(`/api/jobs/${state.activeJobId}/retry`, { method: "POST" });
+          listenToJob(state.activeJobId);
+          await loadProgress();
+        } catch (error) { setNotice(document.querySelector("#progress-status"), error.message, "error"); }
+      });
+      document.querySelector("#cancel-review").addEventListener("click", async () => {
+        if (!state.activeJobId) return;
+        try {
+          await api(`/api/jobs/${state.activeJobId}/cancel`, { method: "POST" });
+          await loadReview();
+        } catch (error) { setNotice(document.querySelector("#review-status"), error.message, "error"); }
+      });
+      document.querySelector("#open-result").addEventListener("click", () => showPage("result"));
+
+      async function loadJobs() {
+        const status = document.querySelector("#library-status");
+        try {
+          state.jobs = await api("/api/jobs");
+          renderJobs();
+        } catch (error) {
+          setNotice(status, error.message, "error");
+        }
+      }
+
+      function renderJobs() {
+        const list = document.querySelector("#job-list");
+        const query = document.querySelector("#library-search").value.trim().toLowerCase();
+        list.replaceChildren();
+        const matches = state.jobs.filter((job) => `${job.script} ${job.avatar_name || ""} ${job.status}`.toLowerCase().includes(query));
+        if (!matches.length) {
+          const empty = document.createElement("p");
+          empty.className = "muted";
+          empty.textContent = "No matching jobs yet.";
+          list.append(empty);
+          return;
+        }
+        for (const job of matches) {
+          const card = document.createElement("article");
+          card.className = "job-card";
+          const title = document.createElement("h3");
+          title.textContent = job.script.slice(0, 110);
+          const meta = document.createElement("p");
+          meta.textContent = `${job.avatar_name || "No avatar"} · ${labels[job.status] || job.status} · ${new Date(job.created_at).toLocaleString()}`;
+          card.append(title, meta);
+          const open = document.createElement("button");
+          open.className = "secondary";
+          open.textContent = "Open job";
+          open.addEventListener("click", async () => {
+            state.activeJobId = job.id;
+            await loadProgress();
+            showPage(job.status === "voice_review" ? "review" : job.status === "video_review" ? "quality-review" : job.status === "completed" ? "result" : "progress");
+            if (!["completed", "failed", "cancelled", "voice_review", "video_review", "draft"].includes(job.status)) listenToJob(job.id);
+          });
+          card.append(open);
+          list.append(card);
+        }
+      }
+      document.querySelector("#library-search").addEventListener("input", renderJobs);
+
+      async function loadSystem() {
+        const container = document.querySelector("#system-status");
+        try {
+          const info = await api("/api/system");
+          container.replaceChildren();
+          const rows = [
+            ["PyTorch", info.torch_installed ? info.torch_version : "Not installed"],
+            ["CUDA available to app Python", info.cuda_available ? "Yes" : "No"],
+            ["GPU", info.gpu_name || "Not available to this Python runtime"],
+            ["Voice workers configured", info.voice_pipeline_configured ? "Yes" : "No"],
+            ["Video, QC, and post workers configured", info.video_pipeline_configured ? "Yes" : "No"],
+            ["Full worker configuration", info.full_pipeline_configured ? "Complete" : "Incomplete"],
+            ["GPU worker stages configured", info.gpu_worker_stages_configured ? "Yes" : "No"],
+            ["Worker configuration", info.worker_config_path],
+            ["Configured stages", info.configured_workers.join(", ") || "None"],
+            ["Stages still needed", info.missing_workers.join(", ") || "None"],
+          ];
+          for (const [label, value] of rows) {
+            const line = document.createElement("p");
+            line.textContent = `${label}: ${value}`;
+            container.append(line);
+          }
+          const verification = document.createElement("p");
+          verification.className = "muted";
+          verification.textContent = "Worker configuration does not verify worker-environment CUDA, model availability, or successful inference.";
+          container.append(verification);
+          if (info.message) {
+            const message = document.createElement("p");
+            message.className = "notice";
+            message.textContent = info.message;
+            container.append(message);
+          }
+        } catch (error) {
+          container.textContent = error.message;
+        }
+      }
+      document.querySelector("#refresh-system").addEventListener("click", loadSystem);
+
+      async function loadResult() {
+        if (!state.activeJobId) return;
+        const job = await api(`/api/jobs/${state.activeJobId}`);
+        const provenance = await api(`/api/jobs/${state.activeJobId}/provenance`);
+        document.querySelector("#result-summary").textContent = `${job.avatar_name || "Avatar"} · ${job.voice_name || "Voice"} · ${job.segments.length} segments · AI-generated`;
+        document.querySelector("#result-video").src = job.video_url;
+        const download = document.querySelector("#download-video");
+        download.href = job.video_url;
+        download.download = `avatar-${job.id}.mp4`;
+        document.querySelector("#download-provenance").href = `/api/jobs/${job.id}/provenance`;
+        document.querySelector("#quality-summary").textContent = `Checks: ${provenance.quality_status.replace("_", " ")}.`;
+        const flags = document.querySelector("#quality-flags");
+        flags.replaceChildren();
+        for (const flag of provenance.quality_flags) {
+          const item = document.createElement("li");
+          item.textContent = flag;
+          flags.append(item);
+        }
+        const segmentList = document.querySelector("#result-segments");
+        segmentList.replaceChildren();
+        for (const segment of job.segments) {
+          const card = document.createElement("article");
+          card.className = "segment-card";
+          const title = document.createElement("h3");
+          title.textContent = `Segment ${segment.position + 1}`;
+          const text = document.createElement("p");
+          text.textContent = segment.text;
+          card.append(title, text);
+          if (segment.video_url) {
+            const preview = document.createElement("video");
+            preview.controls = true;
+            preview.playsInline = true;
+            preview.src = segment.video_url;
+            card.append(preview);
+          }
+          const regenerate = document.createElement("button");
+          regenerate.className = "secondary";
+          regenerate.textContent = "Regenerate this segment";
+          regenerate.addEventListener("click", async () => {
+            try {
+              await api(`/api/jobs/${job.id}/segments/${segment.id}/regenerate-video`, { method: "POST" });
+              listenToJob(job.id);
+              showPage("progress");
+              await loadProgress();
+            } catch (error) {
+              setNotice(document.querySelector("#quality-summary"), error.message, "error");
+            }
+          });
+          card.append(regenerate);
+          segmentList.append(card);
+        }
+      }
+
+      const pageObserver = new MutationObserver(() => {
+        if (!document.querySelector("#page-result").classList.contains("hidden")) loadResult().catch((error) => setNotice(document.querySelector("#result-summary"), error.message, "error"));
+      });
+      pageObserver.observe(document.querySelector("#page-result"), { attributes: true, attributeFilter: ["class"] });
+
+      loadAvatars().catch((error) => setNotice(document.querySelector("#studio-status"), error.message, "error"));
+      loadVoices().catch((error) => setNotice(document.querySelector("#studio-status"), error.message, "error"));
+    </script>
+  </body>
+</html>
